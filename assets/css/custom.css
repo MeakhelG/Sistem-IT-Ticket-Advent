@@ -1,0 +1,177 @@
+/**
+ * Custom CSS untuk Fitur IT Ticket Khusus
+ * Kategori Interaktif, Rating Bintang, Lampiran Gambar, Print Mode
+ */
+
+/* Pilihan Kategori Interaktif di Form Buat Tiket */
+.category-select-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.category-option-card {
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    user-select: none;
+}
+
+.category-option-card:hover {
+    border-color: #a5b4fc;
+    background-color: #f5f7ff;
+    transform: translateY(-2px);
+}
+
+.category-option-card.selected {
+    border-color: var(--primary-color);
+    background-color: #eef2ff;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.category-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: #ffffff;
+}
+
+.category-option-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #1e293b;
+}
+
+/* Priority Selector Radios */
+.priority-selector-wrapper {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.priority-radio-btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.priority-radio-btn input[type="radio"] {
+    display: none;
+}
+
+.priority-radio-btn label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+}
+
+.priority-radio-btn input[type="radio"]:checked + label {
+    border-color: var(--primary-color);
+    background-color: #eef2ff;
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.priority-radio-btn.urgent input[type="radio"]:checked + label {
+    border-color: var(--danger-color);
+    background-color: #fef2f2;
+    color: var(--danger-color);
+}
+
+/* Upload Dropzone Preview */
+.upload-dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    background-color: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--primary-color);
+    background-color: #f0f4ff;
+}
+
+.preview-image-container {
+    max-width: 250px;
+    margin-top: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    display: none;
+}
+
+.preview-image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Rating Bintang */
+.rating-stars-input {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 6px;
+}
+
+.rating-stars-input input {
+    display: none;
+}
+
+.rating-stars-input label {
+    font-size: 1.8rem;
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.rating-stars-input label:hover,
+.rating-stars-input label:hover ~ label,
+.rating-stars-input input:checked ~ label {
+    color: #f59e0b;
+}
+
+/* Print Styles */
+@media print {
+    .app-sidebar, .app-header, .btn-no-print, .reply-form-box, .action-sidebar-col {
+        display: none !important;
+    }
+    .app-main {
+        margin-left: 0 !important;
+    }
+    .app-content {
+        padding: 0 !important;
+    }
+    body {
+        background: #ffffff !important;
+        font-size: 11pt !important;
+    }
+    .ticket-thread-box {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+}
