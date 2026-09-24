@@ -9,50 +9,75 @@ $filter = $_GET['filter'] ?? 'all';
 $categoryFilter = $_GET['category'] ?? '';
 $priorityFilter = $_GET['priority'] ?? '';
 $statusFilter = $_GET['status'] ?? '';
-$currentUser = getCurrentUser();
+$sort = $_GET['sort'] ?? 'newest';
+$page = max(1, (int)($_GET['p'] ?? 1));
+$perPage = 10;
+$offset = ($page - 1) * $perPage;
 
+$currentUser = getCurrentUser();
 $db = getDB();
 
 // Bangun query SQL dinamis
+$whereSql = "";
+$params = [];
+
+if ($filter === 'my_tickets') {
+    $whereSql .= " AND t.user_id = ?";
+    $params[] = $currentUser['id'];
+} elseif ($filter === 'in_progress') {
+    $whereSql .= " AND t.status = 'in_progress'";
+} elseif ($filter === 'pending') {
+    $whereSql .= " AND t.status = 'pending'";
+} elseif ($filter === 'resolved') {
+    $whereSql .= " AND (t.status = 'resolved' OR t.status = 'closed')";
+} elseif ($filter === 'urgent') {
+    $whereSql .= " AND t.priority = 'urgent' AND t.status != 'closed'";
+}
+
+if (!empty($categoryFilter)) {
+    $whereSql .= " AND t.category_id = ?";
+    $params[] = $categoryFilter;
+}
+
+if (!empty($priorityFilter)) {
+    $whereSql .= " AND t.priority = ?";
+    $params[] = $priorityFilter;
+}
+
+if (!empty($statusFilter)) {
+    $whereSql .= " AND t.status = ?";
+    $params[] = $statusFilter;
+}
+
+// 1. Hitung Total Data untuk Pagination Bar
+$countSql = "SELECT COUNT(*) FROM tickets t WHERE 1=1" . $whereSql;
+$countStmt = $db->prepare($countSql);
+$countStmt->execute($params);
+$totalTickets = (int)$countStmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalTickets / $perPage));
+
+// 2. Tentukan Urutan Sorting
+$orderBy = "CASE WHEN t.priority = 'urgent' AND t.status != 'closed' THEN 0 ELSE 1 END, t.created_at DESC";
+if ($sort === 'oldest') {
+    $orderBy = "t.created_at ASC";
+} elseif ($sort === 'priority_desc') {
+    $orderBy = "CASE t.priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END ASC, t.created_at DESC";
+} elseif ($sort === 'priority_asc') {
+    $orderBy = "CASE t.priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 WHEN 'urgent' THEN 4 ELSE 5 END ASC, t.created_at DESC";
+} elseif ($sort === 'updated') {
+    $orderBy = "t.updated_at DESC";
+}
+
 $sql = "
     SELECT t.*, 
            c.name as category_name, c.icon as category_icon, c.color as category_color,
            (SELECT COUNT(*) FROM ticket_replies r WHERE r.ticket_id = t.id) as reply_count
     FROM tickets t
     JOIN categories c ON t.category_id = c.id
-    WHERE 1=1
+    WHERE 1=1 {$whereSql}
+    ORDER BY {$orderBy}
+    LIMIT {$perPage} OFFSET {$offset}
 ";
-$params = [];
-
-if ($filter === 'my_tickets') {
-    $sql .= " AND t.user_id = ?";
-    $params[] = $currentUser['id'];
-} elseif ($filter === 'in_progress') {
-    $sql .= " AND t.status = 'in_progress'";
-} elseif ($filter === 'pending') {
-    $sql .= " AND t.status = 'pending'";
-} elseif ($filter === 'resolved') {
-    $sql .= " AND (t.status = 'resolved' OR t.status = 'closed')";
-} elseif ($filter === 'urgent') {
-    $sql .= " AND t.priority = 'urgent' AND t.status != 'closed'";
-}
-
-if (!empty($categoryFilter)) {
-    $sql .= " AND t.category_id = ?";
-    $params[] = $categoryFilter;
-}
-
-if (!empty($priorityFilter)) {
-    $sql .= " AND t.priority = ?";
-    $params[] = $priorityFilter;
-}
-
-if (!empty($statusFilter)) {
-    $sql .= " AND t.status = ?";
-    $params[] = $statusFilter;
-}
-
-$sql .= " ORDER BY CASE WHEN t.priority = 'urgent' AND t.status != 'closed' THEN 0 ELSE 1 END, t.created_at DESC";
 
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
@@ -64,6 +89,12 @@ if (!empty($categoryFilter)) {
     $catStmt = $db->prepare("SELECT name FROM categories WHERE id = ?");
     $catStmt->execute([$categoryFilter]);
     $selectedCatName = $catStmt->fetchColumn() ?: '';
+}
+
+// Helper untuk membuat link URL pagination & filter dengan mempertahankan parameter aktif
+function buildFilterUrl($newParams = []) {
+    $params = array_merge($_GET, $newParams);
+    return 'index.php?' . http_build_query($params);
 }
 ?>
 
@@ -111,6 +142,32 @@ if (!empty($categoryFilter)) {
                     <input type="text" id="ticketSearchInput" placeholder="Cari judul, nama pelapor, ruangan...">
                 </div>
 
+                <!-- Quick Sort Dropdown -->
+                <?php
+                $sortLabels = [
+                    'newest'        => 'Terbaru',
+                    'oldest'        => 'Paling Lama',
+                    'priority_desc' => 'Prioritas Tinggi',
+                    'priority_asc'  => 'Prioritas Rendah',
+                    'updated'       => 'Baru Dibalas'
+                ];
+                ?>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light border dropdown-toggle px-3 py-1 rounded-3 small" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-sort-down text-primary me-1"></i> 
+                        Urutkan: <strong><?= $sortLabels[$sort] ?? 'Terbaru' ?></strong>
+                    </button>
+                    <ul class="dropdown-menu shadow border-0">
+                        <li><a class="dropdown-item <?= $sort === 'newest' ? 'active' : '' ?>" href="<?= buildFilterUrl(['sort' => 'newest', 'p' => 1]) ?>"><i class="bi bi-calendar-event me-2"></i> Terbaru Dibuat (Default)</a></li>
+                        <li><a class="dropdown-item <?= $sort === 'oldest' ? 'active' : '' ?>" href="<?= buildFilterUrl(['sort' => 'oldest', 'p' => 1]) ?>"><i class="bi bi-hourglass-bottom me-2"></i> Paling Lama Menunggu</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item <?= $sort === 'priority_desc' ? 'active' : '' ?>" href="<?= buildFilterUrl(['sort' => 'priority_desc', 'p' => 1]) ?>"><i class="bi bi-fire text-danger me-2"></i> Prioritas Tertinggi (Urgent &rarr; Low)</a></li>
+                        <li><a class="dropdown-item <?= $sort === 'priority_asc' ? 'active' : '' ?>" href="<?= buildFilterUrl(['sort' => 'priority_asc', 'p' => 1]) ?>"><i class="bi bi-arrow-up text-secondary me-2"></i> Prioritas Terendah (Low &rarr; Urgent)</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item <?= $sort === 'updated' ? 'active' : '' ?>" href="<?= buildFilterUrl(['sort' => 'updated', 'p' => 1]) ?>"><i class="bi bi-arrow-repeat text-success me-2"></i> Baru Dibalas / Diperbarui</a></li>
+                    </ul>
+                </div>
+
                 <!-- Filter Status Dropdown -->
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light border dropdown-toggle px-3 py-1 rounded-3 small" type="button" data-bs-toggle="dropdown">
@@ -118,12 +175,12 @@ if (!empty($categoryFilter)) {
                         Status: <?= !empty($statusFilter) ? htmlspecialchars(getStatusText($statusFilter)) : 'Semua' ?>
                     </button>
                     <ul class="dropdown-menu shadow border-0">
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>">Semua Status</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&status=open">Menunggu Respon (Open)</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&status=in_progress">Sedang Dikerjakan</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&status=pending">Menunggu Konfirmasi</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&status=resolved">Selesai Ditangani</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&status=closed">Ditutup</a></li>
+                        <li><a class="dropdown-item <?= empty($statusFilter) ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => '', 'p' => 1]) ?>">Semua Status</a></li>
+                        <li><a class="dropdown-item <?= $statusFilter === 'open' ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => 'open', 'p' => 1]) ?>">Menunggu Respon (Open)</a></li>
+                        <li><a class="dropdown-item <?= $statusFilter === 'in_progress' ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => 'in_progress', 'p' => 1]) ?>">Sedang Dikerjakan</a></li>
+                        <li><a class="dropdown-item <?= $statusFilter === 'pending' ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => 'pending', 'p' => 1]) ?>">Menunggu Konfirmasi</a></li>
+                        <li><a class="dropdown-item <?= $statusFilter === 'resolved' ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => 'resolved', 'p' => 1]) ?>">Selesai Ditangani</a></li>
+                        <li><a class="dropdown-item <?= $statusFilter === 'closed' ? 'active' : '' ?>" href="<?= buildFilterUrl(['status' => 'closed', 'p' => 1]) ?>">Ditutup</a></li>
                     </ul>
                 </div>
 
@@ -134,23 +191,23 @@ if (!empty($categoryFilter)) {
                         Prioritas: <?= !empty($priorityFilter) ? htmlspecialchars(ucfirst($priorityFilter)) : 'Semua' ?>
                     </button>
                     <ul class="dropdown-menu shadow border-0">
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>">Semua Prioritas</a></li>
-                        <li><a class="dropdown-item text-danger fw-bold" href="index.php?page=tickets&filter=<?= $filter ?>&priority=urgent"><i class="bi bi-fire"></i> Darurat</a></li>
-                        <li><a class="dropdown-item text-warning" href="index.php?page=tickets&filter=<?= $filter ?>&priority=high"><i class="bi bi-exclamation-triangle"></i> Tinggi</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&priority=medium"><i class="bi bi-dash-circle"></i> Normal</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=tickets&filter=<?= $filter ?>&priority=low"><i class="bi bi-arrow-down-circle"></i> Rendah</a></li>
+                        <li><a class="dropdown-item <?= empty($priorityFilter) ? 'active' : '' ?>" href="<?= buildFilterUrl(['priority' => '', 'p' => 1]) ?>">Semua Prioritas</a></li>
+                        <li><a class="dropdown-item text-danger fw-bold <?= $priorityFilter === 'urgent' ? 'active' : '' ?>" href="<?= buildFilterUrl(['priority' => 'urgent', 'p' => 1]) ?>"><i class="bi bi-fire"></i> Darurat</a></li>
+                        <li><a class="dropdown-item text-warning <?= $priorityFilter === 'high' ? 'active' : '' ?>" href="<?= buildFilterUrl(['priority' => 'high', 'p' => 1]) ?>"><i class="bi bi-exclamation-triangle"></i> Tinggi</a></li>
+                        <li><a class="dropdown-item <?= $priorityFilter === 'medium' ? 'active' : '' ?>" href="<?= buildFilterUrl(['priority' => 'medium', 'p' => 1]) ?>"><i class="bi bi-dash-circle"></i> Normal</a></li>
+                        <li><a class="dropdown-item <?= $priorityFilter === 'low' ? 'active' : '' ?>" href="<?= buildFilterUrl(['priority' => 'low', 'p' => 1]) ?>"><i class="bi bi-arrow-down-circle"></i> Rendah</a></li>
                     </ul>
                 </div>
 
-                <?php if (!empty($categoryFilter) || !empty($statusFilter) || !empty($priorityFilter) || $filter !== 'all'): ?>
-                    <a href="index.php?page=tickets" class="btn btn-sm btn-outline-secondary px-2 py-1 rounded-3 small" title="Reset Semua Filter">
+                <?php if (!empty($categoryFilter) || !empty($statusFilter) || !empty($priorityFilter) || $filter !== 'all' || $sort !== 'newest'): ?>
+                    <a href="index.php?page=tickets" class="btn btn-sm btn-outline-danger px-2 py-1 rounded-3 small" title="Reset Semua Filter">
                         <i class="bi bi-x-circle"></i> Reset
                     </a>
                 <?php endif; ?>
             </div>
 
             <div class="text-muted small">
-                Total: <strong><?= count($tickets) ?></strong> Tiket
+                Total: <strong><?= $totalTickets ?></strong> Tiket
             </div>
         </div>
 
@@ -225,6 +282,46 @@ if (!empty($categoryFilter)) {
             <h6 class="fw-bold text-dark">Tidak ada tiket yang cocok dengan pencarian</h6>
             <p class="text-muted small">Coba gunakan kata kunci yang lebih umum.</p>
         </div>
+
+        <!-- Pagination Bar -->
+        <?php if ($totalTickets > 0): ?>
+            <div class="mailbox-footer p-3 border-top bg-light-subtle d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="text-muted small">
+                    Menampilkan <strong><?= $totalTickets > 0 ? ($offset + 1) : 0 ?></strong> - <strong><?= min($offset + $perPage, $totalTickets) ?></strong> dari <strong><?= $totalTickets ?></strong> tiket
+                </div>
+
+                <?php if ($totalPages > 1): ?>
+                    <nav aria-label="Navigasi Halaman Tiket">
+                        <ul class="pagination pagination-sm m-0 gap-1">
+                            <!-- Tombol Sebelumnya -->
+                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                <a class="page-link rounded-2" href="<?= buildFilterUrl(['p' => max(1, $page - 1)]) ?>" aria-label="Sebelumnya">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            <!-- Nomor Halaman -->
+                            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                                <?php if ($p == 1 || $p == $totalPages || ($p >= $page - 2 && $p <= $page + 2)): ?>
+                                    <li class="page-item <?= $p == $page ? 'active' : '' ?>">
+                                        <a class="page-link rounded-2 <?= $p == $page ? 'fw-bold' : '' ?>" href="<?= buildFilterUrl(['p' => $p]) ?>"><?= $p ?></a>
+                                    </li>
+                                <?php elseif ($p == $page - 3 || $p == $page + 3): ?>
+                                    <li class="page-item disabled"><span class="page-link rounded-2 border-0 bg-transparent text-muted">...</span></li>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+
+                            <!-- Tombol Berikutnya -->
+                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                <a class="page-link rounded-2" href="<?= buildFilterUrl(['p' => min($totalPages, $page + 1)]) ?>" aria-label="Berikutnya">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

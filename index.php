@@ -1,8 +1,26 @@
 <?php
 /**
  * Sistem IT Ticket Advent - Router & Controller Utama
- * Disederhanakan untuk 2 Role: Tim IT dan Staf Kantor
+ * Menerapkan Arsitektur MVC + Service Layer & RBAC
  */
+
+// 1. Daftarkan PSR-4 Autoloader Sederhana untuk Namespace App\
+spl_autoload_register(function ($class) {
+    $prefix = 'App\\';
+    $baseDir = __DIR__ . '/app/';
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/database.php';
@@ -20,6 +38,7 @@ $page = $_GET['page'] ?? 'tickets';
 // ==========================================
 // PROSES AKSI BACKEND (POST / ACTION HANDLERS)
 // ==========================================
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($action)) {
 
@@ -84,47 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($action)) {
 
     // 2. AKSI: KIRIM BALASAN TIKET
     if ($action === 'reply_ticket') {
-        $ticketId = (int)($_POST['ticket_id'] ?? 0);
-        $message = trim($_POST['message'] ?? '');
-        $isInternal = isset($_POST['is_internal']) && ($currentUser['role'] === 'it') ? 1 : 0;
-        $senderName = ($currentUser['role'] === 'it') ? 'Tim IT Advent' : 'Staf Kantor';
-
-        if ($ticketId <= 0 || empty($message)) {
-            setFlash('danger', 'Isi pesan balasan tidak boleh kosong.');
-            header("Location: index.php?page=show_ticket&id=$ticketId");
-            exit;
-        }
-
-        // Upload Lampiran Balasan
-        $attachmentFilename = '';
-        if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
-            $tmpPath = $_FILES['attachment']['tmp_name'];
-            $origName = $_FILES['attachment']['name'];
-            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
-            $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'webp'];
-
-            if (in_array($ext, $allowedExts)) {
-                $attachmentFilename = 'reply_' . time() . '_' . rand(100, 999) . '.' . $ext;
-                move_uploaded_file($tmpPath, UPLOAD_DIR . $attachmentFilename);
-            }
-        }
-
-        $stmt = $db->prepare("
-            INSERT INTO ticket_replies (ticket_id, user_id, sender_name, message, attachment, is_internal, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
-        ");
-        $stmt->execute([$ticketId, $currentUser['id'], $senderName, $message, $attachmentFilename, $isInternal]);
-
-        // Perbarui waktu update tiket
-        $db->prepare("UPDATE tickets SET updated_at = datetime('now', 'localtime') WHERE id = ?")->execute([$ticketId]);
-
-        // Catat Audit Log
-        $actionName = $isInternal ? 'Catatan Internal Ditambahkan' : 'Balasan Pesan Dikirim';
-        $db->prepare("INSERT INTO ticket_logs (ticket_id, user_id, action, notes, created_at) VALUES (?, ?, ?, ?, datetime('now', 'localtime'))")
-           ->execute([$ticketId, $currentUser['id'], $actionName, "Tanggapan oleh $senderName"]);
-
-        setFlash('success', 'Balasan berhasil dikirim.');
-        header("Location: index.php?page=show_ticket&id=$ticketId");
+        $replyCtrl = new \App\Controllers\ReplyController();
+        $replyCtrl->store();
         exit;
     }
 
@@ -221,8 +201,21 @@ switch ($page) {
     case 'about':
         require_once __DIR__ . '/views/about.php';
         break;
+    case 'api':
+        $apiCtrl = new \App\Controllers\ApiController();
+        $endpoint = $_GET['endpoint'] ?? '';
+        if ($endpoint === 'search') {
+            $apiCtrl->search();
+        } elseif ($endpoint === 'badge_counts') {
+            $apiCtrl->badgeCounts();
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Endpoint API tidak ditemukan']);
+        }
+        exit;
     case 'tickets':
     default:
         require_once __DIR__ . '/views/tickets/index.php';
         break;
 }
+

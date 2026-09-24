@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Sistem IT Ticket & Helpdesk</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            color: #1e293b;
+        }
+        .flowchart-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+        .nav-pills .nav-link {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+        }
+        .badge-step {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            text-align: center;
+            border-radius: 50%;
+            background: #e0e7ff;
+            color: #4338ca;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="py-4">
+
+<div class="container" style="max-width: 1100px;">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 mb-4 border-bottom">
+        <div>
+            <h1 class="h3 fw-bold text-dark m-0 d-flex align-items-center gap-2">
+                <i class="bi bi-diagram-3-fill text-primary"></i> Flowchart Arsitektur Sistem IT Ticket
+            </h1>
+            <p class="text-muted small m-0 mt-1">Diagram alir siklus hidup tiket, request lifecycle backend, dan alur keamanan upload.</p>
+        </div>
+        <div>
+            <a href="index.php?page=tickets" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                <i class="bi bi-arrow-left"></i> Kembali ke Aplikasi Tiket
+            </a>
+        </div>
+    </div>
+
+    <!-- Tab Navigasi -->
+    <ul class="nav nav-pills mb-4 gap-2" id="flowchartTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-lifecycle-btn" data-bs-toggle="pill" data-bs-target="#tab-lifecycle" type="button" role="tab">
+                <i class="bi bi-arrow-repeat me-1"></i> 1. Siklus Hidup Tiket (RBAC)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-request-btn" data-bs-toggle="pill" data-bs-target="#tab-request" type="button" role="tab">
+                <i class="bi bi-layers-fill me-1"></i> 2. Request Lifecycle (MVC)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-upload-btn" data-bs-toggle="pill" data-bs-target="#tab-upload" type="button" role="tab">
+                <i class="bi bi-shield-check me-1"></i> 3. Keamanan File Upload
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="flowchartTabContent">
+        
+        <!-- 1. SIKLUS HIDUP TIKET -->
+        <div class="tab-pane fade show active" id="tab-lifecycle" role="tabpanel">
+            <div class="flowchart-card">
+                <h5 class="fw-bold mb-1 text-dark">Alur Lengkap: Dari Pelaporan hingga Penilaian Kepuasan</h5>
+                <p class="text-muted small mb-4">Memperlihatkan interaksi antara <strong>Staf Kantor (Reporter)</strong> dan <strong>Tim IT (Technician)</strong> termasuk catatan internal rahasia IT.</p>
+                
+                <div class="mermaid">
+flowchart TD
+    Start([Mulai: Staf Mengalami Kendala IT]) --> Form[Isi Formulir Tiket Kendala<br>Judul, Kategori, Prioritas, Lokasi]
+    Form --> UploadCheck{Ada Lampiran<br>Foto/Screenshot?}
+    
+    UploadCheck -- Ya --> ValidateUpload[Validasi File Upload<br>Maks 5MB & MIME jpg/png/webp]
+    ValidateUpload --> UploadPass{Valid?}
+    UploadPass -- Tidak --> ErrUpload[Tampilkan Pesan Error Validasi] --> Form
+    UploadPass -- Ya --> GenCode[Generate Kode Tiket Otomatis<br>Format: TKT-YYYYMM-XXX]
+    UploadCheck -- Tidak --> GenCode
+    
+    GenCode --> SaveDB[(Simpan Tiket ke DB<br>Status: open)]
+    SaveDB --> LogCreate[Catat ke ticket_logs:<br>Tiket Diajukan]
+    LogCreate --> InboxIT[Tiket Muncul di Kotak Masuk Tim IT]
+    
+    InboxIT --> ITAction[Tim IT Memeriksa & Mengambil Tiket]
+    ITAction --> UpdateProgress[Ubah Status: in_progress<br>Catat ke ticket_logs]
+    
+    UpdateProgress --> ThreadHub{Ada Kebutuhan<br>Diskusi / Balasan?}
+    
+    ThreadHub -- Ya --> CheckSender{Siapa yang Mengirim Pesan?}
+    CheckSender -- Staf --> StafReply[Kirim Pesan Publik<br>is_internal = 0]
+    CheckSender -- Tim IT --> ITNoteType{Pilih Jenis Pesan}
+    ITNoteType -- Balasan ke Staf --> PubReply[Pesan Publik: is_internal = 0]
+    ITNoteType -- Catatan Rahasia IT --> PrivReply[Catatan Internal: is_internal = 1<br>Hanya Terbaca Sesama IT]
+    
+    StafReply --> SaveReply[(Simpan ticket_replies<br>& Audit Log)] --> ThreadHub
+    PubReply --> SaveReply
+    PrivReply --> SaveReply
+    
+    ThreadHub -- Masalah Selesai --> ITSolve[Tim IT Input Catatan Solusi<br>Ubah Status: resolved<br>Timestamp: resolved_at = NOW]
+    ITSolve --> LogResolved[Catat ke ticket_logs:<br>Status Diubah: Selesai Ditangani]
+    
+    LogResolved --> StafRating[Staf Menerima Notifikasi Selesai<br>Isi Rating 1-5 Bintang & Ulasan]
+    StafRating --> SaveRating[(Simpan Rating ke DB<br>Status: closed)]
+    SaveRating --> LogClosed[Catat ke ticket_logs:<br>Rating Diberikan & Tiket Ditutup]
+    LogClosed --> End([Selesai: Arsip Knowledge Base])
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. REQUEST LIFECYCLE MVC -->
+        <div class="tab-pane fade" id="tab-request" role="tabpanel">
+            <div class="flowchart-card">
+                <h5 class="fw-bold mb-1 text-dark">Alur Pemrosesan Request Backend (Clean Architecture)</h5>
+                <p class="text-muted small mb-4">Pemisahan tanggung jawab: Browser &rarr; Autoloader &rarr; Router &rarr; Middleware &rarr; Controller &rarr; Service &rarr; Model &rarr; Database.</p>
+                
+                <div class="mermaid">
+flowchart LR
+    Req["Browser HTTP Request<br>(GET / POST / AJAX)"] --> Autoload["Front Controller index.php<br>+ PSR-4 Autoloader"]
+    Autoload --> Router{"Router Switch<br>(page / action)"}
+    
+    Router --> AuthMid["AuthMiddleware<br>(Session & RBAC Guard)"]
+    AuthMid --> CsrfCheck{"Validasi CSRF Token<br>(Khusus Request POST)"}
+    
+    CsrfCheck -- Valid --> Controllers["Controller Layer<br>(Ticket / Reply Controller)"]
+    Router -- API Request --> ApiCtrl["ApiController<br>(Live Search & Badges)"]
+    
+    Controllers --> Services["Service Layer<br>(TicketService / ReplyService)"]
+    ApiCtrl --> Services
+    
+    Services --> UploadUtil["FileUploader Util<br>(MIME check, 5MB, Rename)"]
+    Services --> Models["Model & Database Layer<br>(PDO MySQL / SQLite)"]
+    
+    Models --> Controllers
+    Controllers --> ViewResp["Render View HTML<br>(Mailbox Inbox Style)"]
+    ApiCtrl --> JsonResp["Response JSON<br>(Search / Badge Polling)"]
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. FILE UPLOAD SECURITY -->
+        <div class="tab-pane fade" id="tab-upload" role="tabpanel">
+            <div class="flowchart-card">
+                <h5 class="fw-bold mb-1 text-dark">Filter Keamanan File Upload (Anti-Malware & Webshell)</h5>
+                <p class="text-muted small mb-4">Lapisan sanitasi: verifikasi status error, batas kuota 5MB, deteksi magic bytes biner asli, dan pengacakan nama file.</p>
+                
+                <div class="mermaid">
+flowchart TD
+    InFile([Input File: $_FILES]) --> CheckEmpty{Ada File yang Diunggah?}
+    CheckEmpty -- Tidak --> ReturnNull[Return null: Lanjut Tanpa Lampiran]
+    
+    CheckEmpty -- Ya --> CheckErr{UPLOAD_ERR_OK?}
+    CheckErr -- Tidak --> ThrowErr1[Throw Exception: 'Gagal mengunggah file']
+    
+    CheckErr -- Ya --> CheckSize{Ukuran File <= 5MB?}
+    CheckSize -- Tidak --> ThrowErr2[Throw Exception: 'Ukuran file melebihi 5MB']
+    
+    CheckSize -- Ya --> ReadMime[Baca Biner File Asli<br>via finfo_file / MAGIC BYTES]
+    ReadMime --> WhitelistCheck{MIME di Whitelist?<br>image/jpeg, png, webp}
+    WhitelistCheck -- Tidak --> ThrowErr3[Throw Exception: 'Format file tidak didukung']
+    
+    WhitelistCheck -- Ya --> RandomName[Generate Nama Acak Unik<br>tkt_YYYYMMDD_His_hexrandom.ext]
+    RandomName --> MoveFile[Pindahkan ke Folder uploads/<br>via move_uploaded_file]
+    MoveFile --> MoveSuccess{Berhasil Dipindah?}
+    MoveSuccess -- Ya --> ReturnName[Return Nama File Aman]
+    MoveSuccess -- Tidak --> ThrowErr4[Throw Exception: 'Izin tulis folder gagal']
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        flowchart: {
+            curve: 'basis',
+            useMaxWidth: true
+        }
+    });
+
+    // Re-render saat tab berpindah agar diagram tidak collapse
+    const tabEls = document.querySelectorAll('button[data-bs-toggle="pill"]');
+    tabEls.forEach(el => {
+        el.addEventListener('shown.bs.tab', event => {
+            mermaid.run();
+        });
+    });
+</script>
+</body>
+</html>

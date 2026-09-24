@@ -131,22 +131,48 @@ $currentUser = getCurrentUser();
                     <textarea class="form-control rounded-3" id="ticketDesc" name="description" rows="4" placeholder="Ceritakan apa yang terjadi, sejak kapan terjadi, dan apakah ada lampu indikator merah atau pesan error..." required></textarea>
                 </div>
 
-                <!-- 6. Upload Foto / Bukti -->
+                <!-- 6. Upload Foto / Bukti (Drag & Drop + Realtime Validation) -->
                 <div class="mb-4">
-                    <label class="form-label fw-bold text-dark">
-                        6. Foto Bukti Masalah (Opsional)
+                    <label class="form-label fw-bold text-dark d-flex align-items-center justify-content-between">
+                        <span>6. Foto Bukti Masalah (Opsional)</span>
+                        <span class="text-muted small fw-normal">Maksimal 5MB (JPG, PNG, WEBP)</span>
                     </label>
-                    <div class="upload-dropzone p-3" onclick="document.getElementById('ticketAttachmentInput').click();">
-                        <i class="bi bi-camera text-primary fs-3 mb-1 d-block"></i>
-                        <div class="fw-semibold text-dark small">Klik di sini untuk upload foto dari komputer / HP</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">Mendukung format gambar JPG, PNG, PDF</div>
-                        <input type="file" id="ticketAttachmentInput" name="attachment" accept="image/*,application/pdf" style="display: none;">
+
+                    <!-- Interactive Drag & Drop Zone -->
+                    <div class="upload-dropzone p-4 text-center rounded-3 border-2 border-dashed" id="uploadDropzone" style="cursor: pointer; border-style: dashed; background-color: #f8fafc; transition: all 0.2s ease;">
+                        <input type="file" id="ticketAttachmentInput" name="attachment" accept="image/jpeg,image/png,image/webp,image/jpg" style="display: none;">
+                        <div id="dropzonePrompt">
+                            <i class="bi bi-cloud-arrow-up text-primary fs-1 mb-2 d-block"></i>
+                            <div class="fw-bold text-dark mb-1">Tarik & Letakkan file foto di sini, atau <span class="text-primary text-decoration-underline">Pilih Berkas</span></div>
+                            <div class="text-muted small">Format didukung: JPG, JPEG, PNG, WEBP (Maksimal 5MB)</div>
+                        </div>
                     </div>
 
-                    <!-- Preview Gambar Langsung -->
-                    <div class="preview-image-container mt-2" id="attachmentPreview">
-                        <div class="small fw-semibold text-muted mb-1"><i class="bi bi-image"></i> Foto terpilih:</div>
-                        <img id="previewImg" src="" alt="Pratinjau Foto">
+                    <!-- File Validation Error Alert -->
+                    <div id="fileSizeAlert" class="alert alert-danger py-2 px-3 small mt-2 d-none align-items-center gap-2 rounded-3">
+                        <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+                        <span id="fileSizeAlertText">Ukuran berkas melebihi batas 5MB! Silakan pilih foto lain yang lebih kecil.</span>
+                    </div>
+
+                    <!-- Preview Thumbnail & File Info Card (with Remove Button) -->
+                    <div class="card border rounded-3 p-3 mt-2 shadow-sm d-none" id="attachmentPreviewCard">
+                        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-3">
+                                <img id="previewImg" src="" alt="Pratinjau Foto" class="rounded-3 border object-fit-cover shadow-sm" style="width: 70px; height: 70px; object-fit: cover;">
+                                <div>
+                                    <div class="fw-bold text-dark small text-truncate" id="fileNameDisplay" style="max-width: 250px;">nama_file.jpg</div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="badge bg-secondary-subtle text-secondary small" id="fileSizeBadge">0 KB</span>
+                                        <span class="badge bg-success-subtle text-success small" id="fileStatusBadge"><i class="bi bi-check-circle me-1"></i> Siap Diunggah</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold" id="removeAttachmentBtn">
+                                    <i class="bi bi-trash me-1"></i> Hapus Foto
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

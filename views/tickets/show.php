@@ -132,14 +132,22 @@ $ticketLogs = $logs->fetchAll();
             </div>
 
             <!-- Thread Balasan Percakapan (Email Style Thread) -->
-            <?php if (count($replies) > 0): ?>
-                <div class="mb-3">
-                    <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
-                        <i class="bi bi-chat-dots-fill text-primary"></i> Riwayat Balasan & Komunikasi (<?= count($replies) ?>)
-                    </h6>
+            <div class="mb-3" id="threadSection">
+                <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+                    <i class="bi bi-chat-dots-fill text-primary"></i> Riwayat Balasan & Komunikasi (<span id="replyCountBadge"><?= count($replies) ?></span>)
+                </h6>
+
+                <div id="replyThreadContainer">
+                    <?php if (count($replies) === 0): ?>
+                        <div id="noRepliesNotice" class="card border-0 shadow-sm rounded-4 p-4 text-center text-muted small bg-white mb-2">
+                            <i class="bi bi-chat-left-text text-muted fs-3 mb-1"></i>
+                            <div>Belum ada pesan balasan.</div>
+                            <div class="text-secondary" style="font-size: 0.75rem;">Gunakan form di bawah untuk mengirim tanggapan atau instruksi perbaikan.</div>
+                        </div>
+                    <?php endif; ?>
 
                     <?php foreach ($replies as $rep): ?>
-                        <div class="card border-0 shadow-sm rounded-4 mb-2 <?= $rep['is_internal'] ? 'border-start border-4 border-warning bg-warning-subtle' : 'bg-white' ?>">
+                        <div class="card border-0 shadow-sm rounded-4 mb-2 reply-card-item <?= $rep['is_internal'] ? 'border-start border-4 border-warning bg-warning-subtle' : 'bg-white' ?>" id="reply-card-<?= $rep['id'] ?>">
                             <div class="card-body p-3 px-4">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <div class="d-flex align-items-center gap-2">
@@ -170,7 +178,7 @@ $ticketLogs = $logs->fetchAll();
                         </div>
                     <?php endforeach; ?>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <!-- Solusi Akhir & Rating Jika Selesai -->
             <?php if ($ticket['status'] === 'resolved' || $ticket['status'] === 'closed'): ?>
@@ -233,16 +241,17 @@ $ticketLogs = $logs->fetchAll();
                         <span class="small text-muted">Sebagai: <strong><?= $isTimIT ? 'Tim IT Advent' : 'Staf Kantor' ?></strong></span>
                     </div>
                     <div class="card-body p-3 px-4 bg-white">
-                        <form action="index.php?action=reply_ticket" method="POST" enctype="multipart/form-data">
+                        <div id="replyAlertPlaceholder"></div>
+                        <form action="index.php?action=reply_ticket" method="POST" enctype="multipart/form-data" id="replyTicketForm">
                             <input type="hidden" name="ticket_id" value="<?= $ticket['id'] ?>">
                             
                             <div class="mb-2">
-                                <textarea class="form-control rounded-3" name="message" rows="3" placeholder="Tulis balasan pesan di sini (konfirmasi kedatangan teknisi, petunjuk, atau info tambahan)..." required></textarea>
+                                <textarea class="form-control rounded-3" id="replyMessageTextarea" name="message" rows="3" placeholder="Tulis balasan pesan di sini (konfirmasi kedatangan teknisi, petunjuk, atau info tambahan)..." required></textarea>
                             </div>
 
                             <div class="row align-items-center g-2">
                                 <div class="col-md-6">
-                                    <input type="file" class="form-control form-control-sm" name="attachment" accept="image/*,application/pdf" title="Lampirkan foto">
+                                    <input type="file" class="form-control form-control-sm" id="replyAttachmentInput" name="attachment" accept="image/*,application/pdf" title="Lampirkan foto">
                                 </div>
                                 <div class="col-md-6 text-md-end">
                                     <?php if ($isTimIT): ?>
@@ -253,8 +262,8 @@ $ticketLogs = $logs->fetchAll();
                                             </label>
                                         </div>
                                     <?php endif; ?>
-                                    <button type="submit" class="btn btn-primary btn-sm px-3 py-2 rounded-3 fw-bold shadow-sm">
-                                        <i class="bi bi-send-fill me-1"></i> Kirim Balasan
+                                    <button type="submit" class="btn btn-primary btn-sm px-3 py-2 rounded-3 fw-bold shadow-sm" id="replySubmitBtn">
+                                        <i class="bi bi-send-fill me-1"></i> <span class="btn-text">Kirim Balasan</span>
                                     </button>
                                 </div>
                             </div>
