@@ -87,54 +87,45 @@ $currentUser = getCurrentUser();
                     <input type="text" class="form-control rounded-3" id="ticketTitle" name="title" placeholder="Contoh: Printer Keuangan Kertas Macet / Wi-Fi Putus di Ruang TU" required>
                 </div>
 
-                <!-- 4. Lokasi & Prioritas -->
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold text-dark" for="ticketLocation">
-                            3. Posisi / Lokasi Meja / Ruangan <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form-control rounded-3" id="ticketLocation" name="location" placeholder="Contoh: Gedung A Lantai 1, Meja Kasir" required>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold text-dark">
-                            4. Seberapa Mendesak? <span class="text-danger">*</span>
-                        </label>
-                        <div class="priority-selector-wrapper">
-                            <div class="priority-radio-btn">
-                                <input type="radio" name="priority" id="prio_medium" value="medium" checked>
-                                <label for="prio_medium">
-                                    <i class="bi bi-dash-circle text-primary"></i> Normal
-                                </label>
-                            </div>
-                            <div class="priority-radio-btn">
-                                <input type="radio" name="priority" id="prio_high" value="high">
-                                <label for="prio_high">
-                                    <i class="bi bi-exclamation-triangle-fill text-warning"></i> Mendesak
-                                </label>
-                            </div>
-                            <div class="priority-radio-btn urgent">
-                                <input type="radio" name="priority" id="prio_urgent" value="urgent">
-                                <label for="prio_urgent">
-                                    <i class="bi bi-fire text-danger"></i> Darurat
-                                </label>
-                            </div>
+                <!-- 3. Prioritas -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-dark">
+                        3. Seberapa Mendesak? <span class="text-danger">*</span>
+                    </label>
+                    <div class="priority-selector-wrapper">
+                        <div class="priority-radio-btn">
+                            <input type="radio" name="priority" id="prio_medium" value="medium" checked>
+                            <label for="prio_medium">
+                                <i class="bi bi-dash-circle text-primary"></i> Normal
+                            </label>
+                        </div>
+                        <div class="priority-radio-btn">
+                            <input type="radio" name="priority" id="prio_high" value="high">
+                            <label for="prio_high">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i> Mendesak
+                            </label>
+                        </div>
+                        <div class="priority-radio-btn urgent">
+                            <input type="radio" name="priority" id="prio_urgent" value="urgent">
+                            <label for="prio_urgent">
+                                <i class="bi bi-fire text-danger"></i> Darurat
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- 5. Deskripsi Rinci Masalah -->
+                <!-- 4. Deskripsi Rinci Masalah -->
                 <div class="mb-3">
                     <label class="form-label fw-bold text-dark" for="ticketDesc">
-                        5. Jelaskan Masalah Secara Singkat <span class="text-danger">*</span>
+                        4. Jelaskan Masalah Secara Singkat <span class="text-danger">*</span>
                     </label>
                     <textarea class="form-control rounded-3" id="ticketDesc" name="description" rows="4" placeholder="Ceritakan apa yang terjadi, sejak kapan terjadi, dan apakah ada lampu indikator merah atau pesan error..." required></textarea>
                 </div>
 
-                <!-- 6. Upload Foto / Bukti (Drag & Drop + Realtime Validation) -->
+                <!-- 5. Upload Foto / Bukti (Drag & Drop + Realtime Validation) -->
                 <div class="mb-4">
                     <label class="form-label fw-bold text-dark d-flex align-items-center justify-content-between">
-                        <span>6. Foto Bukti Masalah (Opsional)</span>
+                        <span>5. Foto Bukti Masalah (Opsional)</span>
                         <span class="text-muted small fw-normal">Maksimal 5MB (JPG, PNG, WEBP)</span>
                     </label>
 

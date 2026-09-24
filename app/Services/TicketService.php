@@ -179,6 +179,9 @@ class TicketService {
         if (empty($reporterDept)) {
             $reporterDept = $currentUser['department'] ?? 'Kantor Advent';
         }
+        if (empty($location)) {
+            $location = $reporterDept;
+        }
 
         if (empty($title) || empty($description)) {
             throw new Exception('Judul dan penjelasan kendala wajib diisi.');

@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($action)) {
         if (empty($reporterDept)) {
             $reporterDept = ($currentUser['role'] === 'it') ? 'Divisi IT' : 'Kantor';
         }
+        if (empty($location)) {
+            $location = $reporterDept;
+        }
 
         if (empty($title) || empty($description)) {
             setFlash('danger', 'Judul dan penjelasan kendala wajib diisi.');
